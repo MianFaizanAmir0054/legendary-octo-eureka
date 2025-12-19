@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bureau Veritas Safety Certificate</title>
+  <style>
+    /* Reset and print setup */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: white;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Page setup for card size printing */
+    @page {
+      size: 85.6mm 54mm; /* Standard card size (ID-1 format) */
+      margin: 0;
+    }
+
+    .certificate-page {
+      width: 85.6mm;
+      height: 54mm;
+      position: relative;
+      background: white;
+      page-break-after: always;
+      overflow: hidden;
+    }
+
+    /* Front card with centered background logo */
+    .card-front {
+      position: relative;
+      height: 100%;
+    }
+
+    .bg-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40mm;
+      height: 40mm;
+      opacity: 0.08;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* First row with logo on left, certificate data center, photo on right */
+    .first-row {
+      display: flex;
+      align-items: center;
+      padding: 2mm 3mm;
+      gap: 2mm;
+      border-bottom: 0.7mm solid #000;
+      height: 18mm;
+    }
+
+    .top-logo {
+      width: 12mm;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .cert-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5mm;
+      font-size: 2mm;
+      justify-content: center;
+    }
+
+    .cert-row {
+      display: flex;
+      gap: 1mm;
+    }
+
+    .cert-label {
+      font-weight: 700;
+      color: #333;
+    }
+
+    .cert-value {
+      color: #333;
+      font-weight: 600;
+    }
+
+    .photo {
+      width: 13mm;
+      height: 16mm;
+      background: #f8fafc;
+      border: 0.5mm solid #0066cc;
+      border-radius: 1mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 2mm;
+      font-weight: 700;
+      text-align: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Personal info section */
+    .personal-info {
+      padding: 3mm 3mm;
+      border-bottom: 0.4mm solid #000;
+      font-size: 2.9mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 18mm;
+      gap: 1.3mm;
+    }
+
+    .info-item.full-width {
+      display: flex;
+      gap: 1mm;
+      width: 100%;
+      align-items: center;
+    }
+
+    .info-item-label {
+      font-weight: 700;
+      color: #333;
+      flex-shrink: 0;
+      min-width: 18mm;
+    }
+
+    .info-item-value {
+      color: #333;
+      font-weight: 600;
+    }
+
+    .name-value {
+      color: #0066cc;
+      font-weight: 800;
+    }
+
+    /* Certificate text section */
+    .cert-text-section {
+      padding: 2mm 3mm;
+      border-bottom: 0.4mm solid #000;
+      display: flex;
+      align-items: center;
+      flex: 1;
+      height: 7mm;
+    }
+
+    .certification-text {
+      font-size: 2.1mm;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #333;
+      text-align: justify;
+    }
+
+    /* Contact info at bottom - now on separate lines */
+    .contact-section {
+        text-align:center;
+      padding: 1.5mm 3mm 1.8mm 3mm;
+      font-size: 1.8mm;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 6mm;
+      line-height: 1.4;
+    }
+
+ 
+
+    .contact-phone,
+    .contact-email {
+      display: block;
+      font-weight: 600;
+    }
+
+    /* Back card layout - full height used efficiently */
+    .card-back {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .back-main-content {
+      display: flex;
+      flex: 1;
+      padding: 2mm 2mm 1mm 2mm;
+    }
+
+    .left-side {
+      width: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f8f9fa;
+    }
+
+    .qr-code {
+      width: 35mm;
+      height: 35mm;
+      background: white;
+      border: 0.5mm solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .qr-code img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .right-side {
+      width: 50%;
+      padding: 0 2mm;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .back-cert{
+        font-size:12px;
+        font-weight: 600;
+    }
+
+    .back-cert-no {
+      font-size: 2.7mm;
+      font-weight: 800;
+      color: #0066cc;
+      margin-bottom: 1mm;
+    }
+
+    .course-field {
+      font-size: 2.1mm;
+      margin-bottom: 0.4mm;
+      display: flex;
+      gap: 1mm;
+    }
+
+    .course-label {
+      color: #333;
+      font-weight: 700;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .course-value {
+      color: #333;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .disclaimer {
+      font-size: 1.5mm;
+      font-weight: 500;
+      line-height: 1.3;
+      color: #333;
+      margin-top: 0.8mm;
+      text-align: justify;
+      flex: 1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 9;
+      -webkit-box-orient: vertical;
+    }
+
+    /* Verification footer - full width at bottom of back page */
+    .verification-footer {
+      width: 100%;
+      padding: 1.2mm 3mm;
+      font-size: 1.7mm;
+      font-weight: 600;
+      color: #d32f2f;
+      text-align: center;
+      line-height: 1.3;
+      background: #fafafa;
+      border-top: 0.2mm solid #ddd;
+    }
+
+    .verification-url {
+      color: #d32f2f;
+      text-decoration: none;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    /* Print Optimization */
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      
+      .certificate-page {
+        margin: 0;
+        border: none;
+        box-shadow: none;
+      }
+      
+      @page {
+        margin: 0;
+      }
+      
+      .disclaimer {
+        overflow: visible;
+        -webkit-line-clamp: unset;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===============================================
+       PAGE 1: Front Side of Card
+       =============================================== -->
+  <div class="certificate-page card-front">
+    <!-- Background centered logo with low opacity -->
+    <!-- <img src="https://logowik.com/content/uploads/images/bureau-veritas1596.jpg" alt="Bureau Veritas" class="bg-logo"> -->
+    <img src="https://s.yimg.com/zb/imgv1/0a7cb3be-9f30-3ecd-bb07-a25f528c9592/t_500x300" alt="Bureau Veritas" class="bg-logo">
+    
+    <div class="card-content">
+      <!-- First row: logo left, cert info center, photo right -->
+      <div class="first-row">
+        <!-- <img src="https://logowik.com/content/uploads/images/bureau-veritas1596.jpg" alt="Bureau Veritas" class="top-logo"> -->
+        <img src="https://s.yimg.com/zb/imgv1/0a7cb3be-9f30-3ecd-bb07-a25f528c9592/t_500x300" alt="Bureau Veritas" class="top-logo">
+        
+        <div class="cert-info">
+          <div class="cert-row">
+            <span class="cert-label">Certificate No:</span>
+            <span class="cert-value">{{certificateNumber}}</span>
+          </div>
+          <div class="cert-row">
+            <span class="cert-label">EA Ref.#</span>
+            <span class="cert-value">{{referenceNumber}}</span>
+          </div>
+          <div class="cert-row">
+            <span class="cert-label">Issued On:</span>
+            <span class="cert-value">{{issueDate}}</span>
+          </div>
+          <div class="cert-row">
+            <span class="cert-label">Valid Until:</span>
+            <span class="cert-value">{{expiryDate}}</span>
+          </div>
+        </div>
+        
+        <div class="photo">
+          {{#if employeeImage}}
+          <img src="{{employeeImage}}" alt="Employee Photo">
+          {{else}}
+          PHOTO
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Personal info section -->
+      <div class="personal-info">
+        <div class="info-item full-width">
+          <span class="info-item-label">Name:</span>
+          <span class="info-item-value name-value">{{employeeName}}</span>
+        </div>
+        <div class="info-item full-width">
+          <span class="info-item-label">ID No:</span>
+          <span class="info-item-value">{{employeeId}}</span>
+        </div>
+        <div class="info-item full-width">
+          <span class="info-item-label">Company:</span>
+          <span class="info-item-value">{{company}}</span>
+        </div>
+        <div class="info-item full-width">
+          <span class="info-item-label">Issuance No:</span>
+          <span class="info-item-value">{{issuanceNumber}}</span>
+        </div>
+      </div>
+
+      <!-- Certificate text section -->
+      <div class="cert-text-section">
+        <div class="certification-text">
+          This certifies that the above mentioned person has successfully completed the {{courseName}}. Refer to backside for details.
+        </div>
+      </div>
+
+      <!-- Contact info section - now on separate lines -->
+      <div class="contact-section">
+        <span class="contact-phone">For any queries: Tel. {{contactPhone}}</span>
+        <span class="contact-email">{{contactEmail}}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===============================================
+       PAGE 2: Back Side of Card
+       =============================================== -->
+  <div class="certificate-page card-back">
+    <!-- Main content: QR left, details right -->
+    <div class="back-main-content">
+      <div class="left-side">
+        <div class="qr-code">
+          <img src="{{qrCodeDataUrl}}" alt="Verification QR Code">
+        </div>
+      </div>
+      
+      <div class="right-side">
+          
+        <div class="back-cert">CERTIFICATE NO:
+        <div class="back-cert-no">{{certificateNumber}}</div>
+        </div>
+        <div class="course-field">
+          <div class="course-label">TYPE:</div>
+          <div class="course-value">{{certificateType}}</div>
+        </div>
+        <div class="course-field">
+          <div class="course-label">MODEL:</div>
+          <div class="course-value">{{model}}</div>
+        </div>
+        <div class="course-field">
+          <div class="course-label">TRAINER:</div>
+          <div class="course-value">{{trainerName}}</div>
+        </div>
+        <div class="course-field">
+          <div class="course-label">LOCATION:</div>
+          <div class="course-value">{{location}}</div>
+        </div>
+
+        <div class="disclaimer">
+          This card does not relieve the operator from responsibilities related to the safe handling operation, or reliability of the listed equipment. Only contracted parties can hold Bureau Veritas liable for errors/omissions related to this card. Bureau Veritas is not liable for any mistakes, negligence, judgement or fault committed by the person holding this card. The SAG license is the client's responsibility.
+        </div>
+      </div>
+    </div>
+
+    <!-- Verification text as footer at the bottom -->
+    <div class="verification-footer">
+      Scan QR code to verify this certificate at<br>
+      <span class="verification-url">{{verificationUrl}}</span>
+    </div>
+  </div>
+</body>
+</html>
