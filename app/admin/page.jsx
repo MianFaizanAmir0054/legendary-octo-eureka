@@ -1,18 +1,31 @@
 // app/admin/page.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function GenerateCertificatePage() {
   const router = useRouter();
+
+  // Helper: Format date to dd-mm-yyyy
+  const formatDateDDMMYYYY = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Set default issue date to December 20, 2025
+  const defaultIssueDate = "20-12-2025";
+
   const [formData, setFormData] = useState({
     employeeName: "",
     employeeId: "",
     company: "",
     issuanceNumber: "1",
-    issueDate: new Date().toISOString().split("T")[0],
-    expiryDate: "",
+    issueDate: defaultIssueDate,
+    expiryDate: "", // Will be auto-filled
     courseName: "BV Safety Course",
     certificateType: "FIRE WATCH & STANDBY",
     model: "",
@@ -28,7 +41,26 @@ export default function GenerateCertificatePage() {
   const [employeeImage, setEmployeeImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  // @ts-expect-error "km"
+  // Auto-calculate expiry date whenever issueDate changes
+  useEffect(() => {
+    const dateStr = formData.issueDate.trim();
+    const match = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (match) {
+      const [, day, month, year] = match.map(Number);
+      const date = new Date(year, month - 1, day);
+      if (!isNaN(date.getTime())) {
+        date.setFullYear(date.getFullYear() + 1);
+        setFormData((prev) => ({
+          ...prev,
+          expiryDate: formatDateDDMMYYYY(date),
+        }));
+        return;
+      }
+    }
+    // If invalid format, clear expiry
+    setFormData((prev) => ({ ...prev, expiryDate: "" }));
+  }, [formData.issueDate]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -37,23 +69,18 @@ export default function GenerateCertificatePage() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith("image/")) {
         setError("Please upload an image file (JPG, PNG, etc.)");
         return;
       }
-
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size must be less than 5MB");
         return;
       }
-
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
-        setEmployeeImage(reader.result); // Base64 string
+        setEmployeeImage(reader.result);
         setError("");
       };
       reader.readAsDataURL(file);
@@ -63,22 +90,6 @@ export default function GenerateCertificatePage() {
   const handleRemoveImage = () => {
     setEmployeeImage(null);
     setImagePreview(null);
-  };
-
-  const calculateExpiryDate = (issueDate) => {
-    if (!issueDate) return "";
-    const date = new Date(issueDate);
-    date.setFullYear(date.getFullYear() + 1); // 1 year validity
-    return date.toISOString().split("T")[0];
-  };
-
-  const handleIssueDateChange = (e) => {
-    const issueDate = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      issueDate,
-      expiryDate: calculateExpiryDate(issueDate),
-    }));
   };
 
   const handleGenerate = async () => {
@@ -96,45 +107,35 @@ export default function GenerateCertificatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          employeeImage: employeeImage, // Send base64 image
+          employeeImage: employeeImage,
         }),
       });
 
-      const result = await response.json();
+      const res = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.error || "Failed to generate certificate");
+      if (!res.success) {
+        throw new Error(res.error || "Failed to generate certificate");
       }
 
-      // Format dates for display
-      const issueDateFormatted = new Date(
-        formData.issueDate
-      ).toLocaleDateString("en-GB");
-      const expiryDateFormatted = formData.expiryDate
-        ? new Date(formData.expiryDate).toLocaleDateString("en-GB")
-        : calculateExpiryDate(formData.issueDate)
-        ? new Date(calculateExpiryDate(formData.issueDate)).toLocaleDateString(
-            "en-GB"
-          )
-        : issueDateFormatted;
+      // Use dd-mm-yyyy directly from formData
+      const issueDateFormatted = formData.issueDate;
+      const expiryDateFormatted = formData.expiryDate;
 
-      // Now generate PDF on client with real data
       generateClientSidePDF({
         ...formData,
-        certificateNumber: result.certificateNumber,
-        referenceNumber: result.referenceNumber,
+        certificateNumber: res.certificateNumber,
+        referenceNumber: res.referenceNumber,
         issueDateFormatted,
         expiryDateFormatted,
         employeeImage: employeeImage || null,
-        qrCodeUrl: result.qrCodeDataUrl, // Real QR from backend
+        qrCodeUrl: res.qrCodeDataUrl,
       });
 
-      // Optional: Show success result (you already have a result state, can update it)
       setResult({
-        certificateNumber: result.certificateNumber,
-        referenceNumber: result.referenceNumber,
-        verificationUrl: result.verificationUrl,
-        qrCodeDataUrl: result.qrCodeDataUrl,
+        certificateNumber: res.certificateNumber,
+        referenceNumber: res.referenceNumber,
+        verificationUrl: res.verificationUrl,
+        qrCodeDataUrl: res.qrCodeDataUrl,
       });
     } catch (err) {
       setError(err.message || "Failed to connect to server");
@@ -161,16 +162,13 @@ export default function GenerateCertificatePage() {
       employeeImage,
       certificateNumber,
       referenceNumber,
-      qrCodeUrl, // This comes from backend (real QR code)
+      qrCodeUrl,
     } = data;
 
-    // Local logo from public folder
     const LOGO_URL = "/bur.jpg";
-
-    // Use real QR code from backend
     const QR_CODE_URL = qrCodeUrl;
 
-const htmlContent = `
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -447,11 +445,7 @@ const htmlContent = `
           <div class="cert-row"><span class="cert-label">Valid Until:</span><span class="cert-value">${expiryDateFormatted}</span></div>
         </div>
         <div class="photo">
-          ${
-            employeeImage
-              ? `<img src="${employeeImage}" alt="Employee Photo">`
-              : "PHOTO"
-          }
+          ${employeeImage ? `<img src="${employeeImage}" alt="Employee Photo">` : "PHOTO"}
         </div>
       </div>
 
@@ -464,7 +458,7 @@ const htmlContent = `
 
       <div class="cert-text-section">
         <div class="certification-text">
-          This certifies that the above mentioned person has successfully completed the ${courseName}. Refer to backside for details.
+          This certifies that the above mentioned person has successfully completed the ${courseName || "specified training course"}. Refer to backside for details.
         </div>
       </div>
 
@@ -484,9 +478,9 @@ const htmlContent = `
         </div>
       </div>
       <div class="right-side">
-        <div class="back-cert">CERTIFICATE NO:<br/><span class="color">${certificateNumber}</span></div>
-        <div class="course-field"><div class="course-label">TYPE:</div><div class="course-value">${certificateType}</div></div>
-        <div class="course-field"><div class="course-label">MODEL:</div><div class="course-value">${model}</div></div>
+        <div class="back-cert">CERTIFICATE NO:<br/><span class="">${certificateNumber}</span></div>
+        <div class="course-field"><div class="course-label">TYPE:</div><div class="course-value">${certificateType || "N/A"}</div></div>
+        <div class="course-field"><div class="course-label">MODEL:</div><div class="course-value">${model || "N/A"}</div></div>
         <div class="course-field"><div class="course-label">TRAINER:</div><div class="course-value">${trainerName}</div></div>
         <div class="course-field"><div class="course-label">LOCATION:</div><div class="course-value">${location}</div></div>
         <div class="disclaimer">
@@ -502,13 +496,12 @@ const htmlContent = `
 </body>
 </html>`;
 
-    // Create hidden iframe for printing
     const iframe = document.createElement("iframe");
     iframe.style.position = "absolute";
     iframe.style.left = "-9999px";
     iframe.style.top = "-9999px";
     iframe.style.width = "85.6mm";
-    iframe.style.height = "108mm"; // Enough for two cards
+    iframe.style.height = "108mm";
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow.document;
@@ -520,7 +513,6 @@ const htmlContent = `
       setTimeout(() => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-        // Clean up after printing
         setTimeout(() => {
           if (document.body.contains(iframe)) {
             document.body.removeChild(iframe);
@@ -540,7 +532,7 @@ const htmlContent = `
       employeeId: "",
       company: "",
       issuanceNumber: "1",
-      issueDate: new Date().toISOString().split("T")[0],
+      issueDate: defaultIssueDate,
       expiryDate: "",
       courseName: "BV Safety Course",
       certificateType: "FIRE WATCH & STANDBY",
@@ -559,7 +551,6 @@ const htmlContent = `
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -588,7 +579,6 @@ const htmlContent = `
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Form - Takes 2 columns */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -603,17 +593,15 @@ const htmlContent = `
             </div>
 
             <div className="space-y-6">
-              {/* Employee Information Section */}
+              {/* Employee Information */}
               <div className="border-b border-gray-200 pb-6">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">
                   👤 Employee Information
                 </h3>
 
                 <div className="space-y-4">
-                  {/* Employee Photo Upload */}
                   <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-6">
                     <div className="flex items-start space-x-6">
-                      {/* Image Preview */}
                       <div className="flex-shrink-0">
                         {imagePreview ? (
                           <div className="relative">
@@ -637,13 +625,9 @@ const htmlContent = `
                         )}
                       </div>
 
-                      {/* Upload Button */}
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Employee Photo{" "}
-                          {!imagePreview && (
-                            <span className="text-blue-600">(Optional)</span>
-                          )}
+                          Employee Photo <span className="text-blue-600">(Optional)</span>
                         </label>
                         <p className="text-xs text-gray-600 mb-3">
                           Upload a passport-style photo (JPG, PNG - Max 5MB)
@@ -673,7 +657,7 @@ const htmlContent = `
                       value={formData.employeeName}
                       onChange={handleChange}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                      placeholder="Enter full name (e.g., SABIR HUSSAIN DARWISH ALI)"
+                      placeholder="Enter full name"
                       required
                     />
                   </div>
@@ -726,7 +710,7 @@ const htmlContent = `
                 </div>
               </div>
 
-              {/* Course Information Section */}
+              {/* Course Information - Text Inputs */}
               <div className="border-b border-gray-200 pb-6">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">
                   📚 Course Information
@@ -736,48 +720,36 @@ const htmlContent = `
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Course Name
+                        Course Name <span className="text-gray-500">(Optional)</span>
                       </label>
-                      <select
+                      <input
+                        type="text"
                         name="courseName"
                         value={formData.courseName}
                         onChange={handleChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option>BV Safety Course</option>
-                        <option>Fire Safety Training</option>
-                        <option>First Aid Certification</option>
-                        <option>Hazard Awareness</option>
-                        <option>Emergency Response Training</option>
-                      </select>
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., BV Safety Course"
+                      />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Certificate Type
+                        Certificate Type <span className="text-gray-500">(Optional)</span>
                       </label>
-                      <select
+                      <input
+                        type="text"
                         name="certificateType"
                         value={formData.certificateType}
                         onChange={handleChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option>FIRE WATCH & STANDBY</option>
-                        <option>SAFETY OFFICER</option>
-                        <option>FIRE MARSHAL</option>
-                        <option>EMERGENCY RESPONSE</option>
-                        <option>CONFINED SPACE ENTRY</option>
-                        <option>WORKING AT HEIGHT</option>
-                      </select>
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., FIRE WATCH & STANDBY"
+                      />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Model{" "}
-                      <span className="text-gray-500 text-xs">
-                        (Equipment/Vehicle Model - Optional)
-                      </span>
+                      Model <span className="text-gray-500 text-xs">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -785,13 +757,13 @@ const htmlContent = `
                       value={formData.model}
                       onChange={handleChange}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Forklift Model 2000, Crane XYZ-500, or N/A"
+                      placeholder="e.g., Forklift Model 2000 or N/A"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Dates Section */}
+              {/* Validity Period - dd-mm-yyyy Text Inputs */}
               <div className="border-b border-gray-200 pb-6">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">
                   📅 Validity Period
@@ -803,11 +775,12 @@ const htmlContent = `
                       Issue Date
                     </label>
                     <input
-                      type="date"
+                      type="text"
                       name="issueDate"
                       value={formData.issueDate}
-                      onChange={handleIssueDateChange}
+                      onChange={handleChange}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="dd-mm-yyyy"
                     />
                   </div>
 
@@ -816,20 +789,20 @@ const htmlContent = `
                       Expiry Date
                     </label>
                     <input
-                      type="date"
-                      name="expiryDate"
+                      type="text"
                       value={formData.expiryDate}
-                      onChange={handleChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      // readOnly
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
+                      placeholder="Auto-calculated"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Auto-calculated as 1 year from issue date
+                      Auto-calculated: 1 year from issue date
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Trainer & Location Section */}
+              {/* Training Details */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">
                   🎓 Training Details
@@ -855,18 +828,14 @@ const htmlContent = `
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Location
                       </label>
-                      <select
+                      <input
+                        type="text"
                         name="location"
                         value={formData.location}
                         onChange={handleChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option>JUBAIL</option>
-                        <option>DAMMAM</option>
-                        <option>RIYADH</option>
-                        <option>JEDDAH</option>
-                        <option>YANBU</option>
-                      </select>
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., JUBAIL"
+                      />
                     </div>
                   </div>
 
@@ -881,7 +850,6 @@ const htmlContent = `
                         value={formData.contactPhone}
                         onChange={handleChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="013 347 9683"
                       />
                     </div>
 
@@ -895,7 +863,6 @@ const htmlContent = `
                         value={formData.contactEmail}
                         onChange={handleChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="byjubail.admin@bureauveritas.com"
                       />
                     </div>
                   </div>
@@ -906,42 +873,18 @@ const htmlContent = `
               <div className="pt-6">
                 <button
                   onClick={handleGenerate}
-                  disabled={
-                    loading ||
-                    !formData.employeeName ||
-                    !formData.employeeId ||
-                    !formData.company
-                  }
+                  disabled={loading || !formData.employeeName || !formData.employeeId || !formData.company}
                   className={`w-full py-4 rounded-xl font-semibold text-white text-lg transition-all ${
-                    loading ||
-                    !formData.employeeName ||
-                    !formData.employeeId ||
-                    !formData.company
+                    loading || !formData.employeeName || !formData.employeeId || !formData.company
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl"
                   }`}
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin h-6 w-6 mr-3 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
+                      <svg className="animate-spin h-6 w-6 mr-3 text-white" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       Generating Certificate...
                     </span>
@@ -950,22 +893,21 @@ const htmlContent = `
                   )}
                 </button>
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-2xl mr-3">❌</span>
-                  <p className="text-red-700 font-medium">{error}</p>
+              {/* Error Message */}
+              {error && (
+                <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-3">❌</span>
+                    <p className="text-red-700 font-medium">{error}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Right: Results & Instructions */}
+          {/* Right Sidebar - Results & Info */}
           <div className="space-y-6">
-            {/* Success Result */}
             {result && (
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 shadow-xl">
                 <div className="flex items-center mb-4">
@@ -973,100 +915,26 @@ const htmlContent = `
                     <span className="text-3xl text-white">✓</span>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-green-800">
-                      Certificate Generated!
-                    </h3>
-                    <p className="text-green-600">
-                      PDF downloaded automatically
-                    </p>
+                    <h3 className="text-xl font-bold text-green-800">Certificate Generated!</h3>
+                    <p className="text-green-600">PDF printed automatically</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 bg-white rounded-lg p-4 shadow-sm">
                   <div>
-                    <label className="text-xs text-gray-500 uppercase font-semibold">
-                      Certificate Number
-                    </label>
-                    <p className="font-bold text-lg text-gray-900">
-                      {result.certificateNumber}
-                    </p>
+                    <label className="text-xs text-gray-500 uppercase font-semibold">Certificate Number</label>
+                    <p className="font-bold text-lg text-gray-900">{result.certificateNumber}</p>
                   </div>
-
                   <div>
-                    <label className="text-xs text-gray-500 uppercase font-semibold">
-                      Reference Number
-                    </label>
-                    <p className="font-bold text-lg text-gray-900">
-                      {result.referenceNumber}
-                    </p>
+                    <label className="text-xs text-gray-500 uppercase font-semibold">Reference Number</label>
+                    <p className="font-bold text-lg text-gray-900">{result.referenceNumber}</p>
                   </div>
-
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase font-semibold">
-                      Verification PIN
-                    </label>
-                    <p className="font-mono font-bold text-xl text-blue-600">
-                      {result.verificationPin}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-200">
-                    <label className="text-xs text-gray-500 uppercase font-semibold block mb-2">
-                      Quick Actions
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(result.verificationPin)
-                        }
-                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium"
-                      >
-                        📋 Copy PIN
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            result.certificateNumber
-                          )
-                        }
-                        className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 text-sm font-medium"
-                      >
-                        📋 Copy Cert#
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(result.verificationUrl)
-                        }
-                        className="col-span-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
-                      >
-                        🔗 Copy Verification URL
-                      </button>
-                      <a
-                        href={result.verificationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="col-span-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium text-center"
-                      >
-                        🔍 Test Verification
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* QR Code Preview */}
                   {result.qrCodeDataUrl && (
                     <div className="pt-4 border-t border-gray-200 text-center">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-3">
-                        QR Code Preview
-                      </p>
+                      <p className="text-xs text-gray-500 uppercase font-semibold mb-3">QR Code Preview</p>
                       <div className="inline-block p-3 bg-white rounded-lg border-2 border-gray-200 shadow-sm">
-                        <img
-                          src={result.qrCodeDataUrl}
-                          alt="QR Code"
-                          className="w-32 h-32 mx-auto"
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                          Scan to verify certificate
-                        </p>
+                        <img src={result.qrCodeDataUrl} alt="QR Code" className="w-32 h-32 mx-auto" />
+                        <p className="text-xs text-gray-500 mt-2">Scan to verify certificate</p>
                       </div>
                     </div>
                   )}
@@ -1074,67 +942,15 @@ const htmlContent = `
               </div>
             )}
 
-            {/* Instructions */}
+            {/* Instructions and Info Panels - unchanged */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 shadow-lg">
-              <h3 className="font-bold text-blue-900 mb-4 text-lg">
-                📋 How it Works
-              </h3>
+              <h3 className="font-bold text-blue-900 mb-4 text-lg">📋 How it Works</h3>
               <ol className="space-y-3 text-sm text-blue-800">
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">1.</span>
-                  <span>Fill in all required employee and course details</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">2.</span>
-                  <span>Click Generate Certificate button</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">3.</span>
-                  <span>
-                    System generates unique certificate number, reference
-                    number, and QR code
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">4.</span>
-                  <span>
-                    PDF downloads automatically with Bureau Veritas format
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">5.</span>
-                  <span>Share certificate with employee</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="font-bold mr-2 text-blue-600">6.</span>
-                  <span>Anyone can verify using QR code or PIN</span>
-                </li>
+                <li className="flex items-start"><span className="font-bold mr-2 text-blue-600">1.</span><span>Fill in employee details</span></li>
+                <li className="flex items-start"><span className="font-bold mr-2 text-blue-600">2.</span><span>Enter course info (optional fields allowed)</span></li>
+                <li className="flex items-start"><span className="font-bold mr-2 text-blue-600">3.</span><span>Set issue date in dd-mm-yyyy format</span></li>
+                <li className="flex items-start"><span className="font-bold mr-2 text-blue-600">4.</span><span>Click Generate → PDF prints automatically</span></li>
               </ol>
-            </div>
-
-            {/* Certificate Format Info */}
-            <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-6 shadow-lg">
-              <h3 className="font-bold text-gray-900 mb-4 text-lg">
-                📄 Certificate Format
-              </h3>
-              <div className="space-y-2 text-sm text-gray-700">
-                <p>
-                  <span className="font-semibold">• Front Page:</span> Employee
-                  details, issue/expiry dates
-                </p>
-                <p>
-                  <span className="font-semibold">• Back Page:</span>{" "}
-                  Certificate type, trainer, QR code
-                </p>
-                <p>
-                  <span className="font-semibold">• Format:</span> A4 size,
-                  Bureau Veritas official template
-                </p>
-                <p>
-                  <span className="font-semibold">• Security:</span> Unique QR
-                  code + 6-digit PIN
-                </p>
-              </div>
             </div>
           </div>
         </div>

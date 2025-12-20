@@ -170,7 +170,7 @@ export default function GenerateCertificatePage() {
     // Use real QR code from backend
     const QR_CODE_URL = qrCodeUrl;
 
-    const htmlContent = `
+const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -180,7 +180,7 @@ export default function GenerateCertificatePage() {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      font-family: Arial, sans-serif; 
+      font-family: Arial, Helvetica, sans-serif; 
       background: white; 
       margin: 0; 
       padding: 0; 
@@ -203,7 +203,6 @@ export default function GenerateCertificatePage() {
       height: 100%; 
     }
     
-    /* Background watermark logo */
     .bg-logo {
       position: absolute;
       top: 50%;
@@ -211,7 +210,7 @@ export default function GenerateCertificatePage() {
       transform: translate(-50%, -50%);
       width: 40mm;
       height: 40mm;
-      opacity: 0.09;
+      opacity: 0.5;
       z-index: 0;
       pointer-events: none;
     }
@@ -243,14 +242,26 @@ export default function GenerateCertificatePage() {
       flex: 1; 
       display: flex; 
       flex-direction: column; 
-      gap: 0.5mm; 
-      font-size: 2mm; 
       justify-content: center; 
+      font-size: 10px; 
     }
-    .cert-row { display: flex; gap: 1mm; }
-    .cert-label { font-weight: 700; font-size: 12px; color: #333; }
-    .cert-value { color: #333; font-weight: 700; font-size: 12px; }
-    .color { color: #3200fd;}
+
+    .cert-row { 
+      display: flex; 
+      gap: 2mm; 
+      line-height: 1.4;
+    }
+    .cert-label { 
+      font-weight: 700; 
+      color: black; 
+    }
+    .cert-value { 
+      font-weight: 700; 
+      color: black; 
+    }
+    .color { 
+      color: #3200fd;  
+    }
 
     .photo { 
       width: 14mm; 
@@ -273,17 +284,31 @@ export default function GenerateCertificatePage() {
     .personal-info { 
       padding: 1.5mm 1.5mm; 
       border-bottom: 0.4mm solid #000; 
-      font-size: 2.9mm; 
+      font-size: 10px; 
       display: flex; 
       flex-direction: column; 
       justify-content: center; 
       height: 20mm; 
-      gap: 1px; 
+      gap: 2px; 
     }
-    .info-item.full-width { display: flex; gap: 1mm; align-items: center; }
-    .info-item-label { font-weight: 800; font-size: 12px; color: #333; flex-shrink: 0; min-width: 18mm; }
-    .info-item-value { color: #333; font-weight: 800; font-size: 12px; }
-    .name-value { color: #0066cc; font-weight: 800; }
+    .info-item.full-width { 
+      display: flex; 
+      gap: 1mm; 
+      align-items: center; 
+    }
+    .info-item-label { 
+      font-weight: 700; 
+      color: black; 
+      flex-shrink: 0; 
+      min-width: 18mm; 
+    }
+    .info-item-value { 
+      font-weight: 700; 
+      color: black; 
+    }
+    .name-value { 
+      color: #3200fd; 
+    }
 
     .cert-text-section { 
       padding: 1mm 1.5mm; 
@@ -294,19 +319,19 @@ export default function GenerateCertificatePage() {
       height: 6mm; 
     }
     .certification-text { 
-      font-size: 2.1mm; 
+      font-size: 8px; 
       font-weight: 600; 
       line-height: 1.4; 
-      color: #333; 
+      color: black; 
       text-align: justify; 
     }
 
     .contact-section { 
       text-align: center; 
-      padding: .5mm 1mm .8mm 1mm; 
-      font-size: 1.8mm; 
+      padding: 0mm; 
+      font-size: 7px; 
       font-weight: 600; 
-      color: #333; 
+      color: black; 
       display: flex; 
       flex-direction: column; 
       justify-content: center; 
@@ -323,18 +348,17 @@ export default function GenerateCertificatePage() {
     .back-main-content { 
       display: flex; 
       flex: 1; 
-      padding: 2mm 2mm 1mm 2mm; 
+      padding: 2mm; 
     }
     .left-side { 
       width: 50%; 
       display: flex; 
       justify-content: center; 
       align-items: center; 
-      background: #f8f9fa; 
     }
     .qr-code { 
-      width: 35mm; 
-      height: 35mm; 
+      width: 45mm; 
+      height: 45mm; 
       display: flex; 
       align-items: center; 
       justify-content: center; 
@@ -347,39 +371,42 @@ export default function GenerateCertificatePage() {
     }
     .right-side { 
       width: 50%; 
-      padding: 0 2mm; 
+      padding: 3mm 1mm 0 1mm; 
       display: flex; 
       flex-direction: column; 
       overflow: hidden; 
     }
     .back-cert { 
-      font-size: 2.7mm; 
-      font-weight: 800; 
-      margin-bottom: 1mm; 
+      font-size: 10px; 
+      font-weight: 700; 
+      margin-bottom: 2px; 
+      line-height: 1.3;
     }
     .course-field { 
-      font-size: 2.1mm; 
-      margin-bottom: 0.4mm; 
+      font-size: 8px; 
+      margin-bottom: 1.5px; 
       display: flex; 
       gap: 1mm; 
+      line-height: 1.3;
     }
     .course-label { 
-      color: #333; 
+      color: black; 
       font-weight: 700; 
       text-transform: uppercase; 
       flex-shrink: 0; 
+      min-width: 18mm;
     }
     .course-value { 
-      color: #333; 
+      color: black; 
       font-weight: 600; 
       word-break: break-word; 
     }
     .disclaimer { 
-      font-size: 1.5mm; 
+      font-size: 6px; 
       font-weight: 500; 
       line-height: 1.3; 
-      color: #333; 
-      margin-top: 0.8mm; 
+      color: black; 
+      margin-top: 3px; 
       text-align: justify; 
       flex: 1; 
     }
@@ -387,7 +414,7 @@ export default function GenerateCertificatePage() {
     .verification-footer {
       width: 100%;
       padding: 1.2mm 3mm;
-      font-size: 1.7mm;
+      font-size: 7px;
       font-weight: 600;
       color: #d32f2f;
       text-align: center;
@@ -410,7 +437,11 @@ export default function GenerateCertificatePage() {
       <div class="first-row">
         <img src="${LOGO_URL}" alt="Bureau Veritas" class="top-logo">
         <div class="cert-info">
-          <div class="cert-row"><span class="cert-label">Certificate No:</span> <span class="cert-value color"> ${certificateNumber}</span></div>
+          <div style="text-align: left;">
+            <div style="font-weight: 700; font-size: 10px; color: black;">Certificate No:</div>
+            <div class="color" style="font-weight: 700; font-size: 10px;">${certificateNumber}</div>
+          </div>
+
           <div class="cert-row"><span class="cert-label">Ref.#</span><span class="cert-value">${referenceNumber}</span></div>
           <div class="cert-row"><span class="cert-label">Issued On:</span><span class="cert-value">${issueDateFormatted}</span></div>
           <div class="cert-row"><span class="cert-label">Valid Until:</span><span class="cert-value">${expiryDateFormatted}</span></div>
@@ -453,7 +484,7 @@ export default function GenerateCertificatePage() {
         </div>
       </div>
       <div class="right-side">
-        <div class="back-cert">CERTIFICATE NO: <br/> <span class="color">${certificateNumber}</span></div>
+        <div class="back-cert">CERTIFICATE NO:<br/><span class="">${certificateNumber}</span></div>
         <div class="course-field"><div class="course-label">TYPE:</div><div class="course-value">${certificateType}</div></div>
         <div class="course-field"><div class="course-label">MODEL:</div><div class="course-value">${model}</div></div>
         <div class="course-field"><div class="course-label">TRAINER:</div><div class="course-value">${trainerName}</div></div>
