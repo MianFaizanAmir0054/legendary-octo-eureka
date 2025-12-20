@@ -1,16 +1,16 @@
 // app/verify/VerifyContent.tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function VerifyContent() {
   const searchParams = useSearchParams();
-  const urlCert = searchParams.get('cert'); // Get ?cert=... from URL
+  const urlCert = searchParams.get("cert"); // Get ?cert=... from URL
 
-  const [documentNumber, setDocumentNumber] = useState('');
+  const [documentNumber, setDocumentNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [certificateData, setCertificateData] = useState(null);
 
@@ -24,7 +24,7 @@ export default function VerifyContent() {
 
   const handleVerification = async (certNumber) => {
     setLoading(true);
-    setError('');
+    setError("");
     setShowModal(false);
 
     try {
@@ -34,7 +34,10 @@ export default function VerifyContent() {
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.error || 'Certificate not found. Please check the document number.');
+        setError(
+          data.error ||
+            "Certificate not found. Please check the document number."
+        );
         setLoading(false);
         return;
       }
@@ -44,24 +47,24 @@ export default function VerifyContent() {
       const formattedData = {
         deliverableId: cert.certificateNumber || certNumber,
         publishedOn: cert.createdAt
-          ? new Date(cert.createdAt).toLocaleDateString('en-GB')
-          : 'N/A',
-        name: cert.employeeName || 'N/A',
-        employeeId: cert.employeeId || 'N/A',
+          ? new Date(cert.createdAt).toLocaleDateString("en-GB")
+          : "N/A",
+        name: cert.employeeName || "N/A",
+        employeeId: cert.employeeId || "N/A",
         validUntil: cert.expiryDate
-          ? new Date(cert.expiryDate).toLocaleDateString('en-GB')
-          : 'N/A',
-        type: cert.courseName || cert.certificateType || 'N/A',
-        company: cert.company || 'PRIVATE',
-        trainingLocation: cert.location || 'N/A',
-        trainer: cert.trainerName || 'N/A',
+          ? new Date(cert.expiryDate).toLocaleDateString("en-GB")
+          : "N/A",
+        type: cert.courseName || cert.certificateType || "N/A",
+        company: cert.company || "PRIVATE",
+        trainingLocation: cert.location || "N/A",
+        trainer: cert.trainerName || "N/A",
         isExpired: cert.isExpired,
       };
 
       setCertificateData(formattedData);
       setShowModal(true);
     } catch (err) {
-      setError('Network error. Please try again later.');
+      setError("Network error. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -77,35 +80,35 @@ export default function VerifyContent() {
   const closeModal = () => {
     setShowModal(false);
     setCertificateData(null);
-    setError('');
+    setError("");
     // Clear URL param after closing modal
     if (urlCert) {
-      window.history.replaceState({}, '', '/verify');
+      window.history.replaceState({}, "", "/verify");
     }
   };
 
   return (
     <div
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        fontFamily: 'Arial, sans-serif',
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        fontFamily: "Arial, sans-serif",
       }}
     >
       {/* Fixed Background */}
       <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage:
-            'ur[](https://e-certificates.bureauveritas.com/img/background-v3/background_industry.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          width: "100%",
+          height: "100%",
+          backgroundImage: "url('/background_industry.jpg')", // ← Local image
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
           zIndex: -1,
         }}
       />
@@ -113,181 +116,111 @@ export default function VerifyContent() {
       {/* Header */}
       <header
         style={{
-          backgroundColor: '#00049E',
-          padding: '20px 40px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          backgroundColor: "#00049E",
+          padding: "10px 10px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
           <img
             src="https://e-certificates.bureauveritas.com/img/fingerprint.png"
             alt="Authenticate"
-            style={{ width: '50px', height: '50px', objectFit: 'contain' }}
+            style={{ width: "80px", height: "80px", objectFit: "contain" }}
           />
-          <div style={{ fontSize: '18px', color: '#fff' }}>
-            <strong>Authenticate</strong>{' '}
-            <span style={{ fontWeight: 'normal' }}>your document</span>
+          <div style={{ fontSize: "30px", color: "#fff" }}>
+            <span style={{ fontWeight: "normal" }}>Authenticate your document</span>
           </div>
         </div>
-        <img
+        {/* <img
           src="https://www.bureauveritas.com/themes/custom/bv_bootstrap/logo.svg"
           alt="Bureau Veritas"
           style={{ height: '40px' }}
-        />
+        /> */}
       </header>
 
       {/* Main Content */}
       <div
         style={{
           flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px 20px',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <div style={{ width: '100%', maxWidth: '600px' }}>
-          <div
-            style={{
-              width: '100%',
-              height: '60px',
-              background: 'linear-gradient(to right, #00049E, #0066cc)',
-              borderTopLeftRadius: '12px',
-              borderTopRightRadius: '12px',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundImage:
-                  'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              backgroundColor: '#fff',
-              padding: '50px 40px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            }}
-          >
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <h1
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 'normal',
-                  color: '#333',
-                }}
-              >
-                Please search your e-document by filling the document number.
-              </h1>
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  backgroundColor: '#f8d7da',
-                  color: '#721c24',
-                  padding: '12px',
-                  borderRadius: '6px',
-                  marginBottom: '20px',
-                  textAlign: 'center',
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit}>
-              <div
-                style={{
-                  display: 'flex',
-                  border: '2px solid #ddd',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: '#f5f5f5',
-                    padding: '12px 20px',
-                    borderRight: '2px solid #ddd',
-                    fontSize: '14px',
-                    color: '#666',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Document number
-                </div>
-                <input
-                  type="text"
-                  value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
-                  required={!urlCert}
-                  style={{
-                    flex: 1,
-                    padding: '12px 15px',
-                    border: 'none',
-                    fontSize: '16px',
-                    outline: 'none',
-                  }}
-                  placeholder="e.g. 148-2024-024857-EN"
+        <div className="flex items-center justify-center pt-0" style={{}}>
+          <div className="w-full max-w-3xl">
+            <div className="rounded-xl shadow-2xl overflow-hidden">
+              <div className="w-full">
+                <img
+                  src="https://e-certificates.bureauveritas.com/img/content_industry_top.png"
+                  alt=""
+                  className="w-full h-[80px] block"
                 />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    backgroundColor: loading ? '#ccc' : '#00049E',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '12px 30px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {loading ? '...' : '🔍'}
-                </button>
               </div>
-            </form>
-          </div>
 
-          <div
-            style={{
-              width: '100%',
-              height: '40px',
-              background: 'linear-gradient(to right, #0066cc, #00049E)',
-              borderBottomLeftRadius: '12px',
-              borderBottomRightRadius: '12px',
-            }}
-          />
+              <div
+                className=""
+                style={{
+                  background: "#f6f6f6",
+                }}
+              >
+                <h1 className="text-xl px-6 py-2 pt-4 pb-0 font-semibold text-black">
+                  Please search your e-document by filling the document number.
+                </h1>
+              </div>
+
+              <div className="pl-6 pt-4 pb-4 pr-6 bg-white">
+                {error && (
+                  <div className="bg-red-100 text-red-800 p-3 rounded-md mb-6 text-center">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                  <div className="flex border border-gray-300 rounded overflow-hidden">
+                    <div className="bg-gray-300 px-3 py-1 border-r-2 border-gray-300 flex items-center text-sm text-black whitespace-nowrap">
+                      Document number
+                    </div>
+                    <input
+                      type="text"
+                      value={documentNumber}
+                      onChange={(e) => setDocumentNumber(e.target.value)}
+                      required
+                      className="flex-1 px-4 py-1 text-base outline-none"
+                      placeholder=""
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-[#00049E] text-xs rounded-r disabled:bg-gray-400 text-white w-10 font-bold cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    >
+                      {loading ? "..." : "🔍"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
       <footer
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          padding: '20px',
-          textAlign: 'center',
+          // backgroundColor: "rgba(255, 255, 255, 0.95)",
+          padding: "20px",
         }}
       >
         <a
           href="https://www.bureauveritas.com"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: '#00049E', textDecoration: 'none' }}
+          // style={{ color: "#00049E", textDecoration: "none" }}
         >
-          Visit <strong>Bureau Veritas Website</strong>
+          Visit <br/><strong>Bureau Veritas Website</strong>
         </a>
       </footer>
 
@@ -295,59 +228,59 @@ export default function VerifyContent() {
       {showModal && certificateData && (
         <div
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             zIndex: 1000,
-            padding: '20px',
+            padding: "20px",
           }}
           onClick={closeModal}
         >
           <div
             style={{
-              backgroundColor: '#fff',
-              borderRadius: '12px',
-              maxWidth: '700px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              backgroundColor: "#fff",
+              borderRadius: "12px",
+              maxWidth: "700px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflow: "auto",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                backgroundColor: '#00049E',
-                padding: '30px',
-                color: '#fff',
-                textAlign: 'center',
+                backgroundColor: "#00049E",
+                padding: "30px",
+                color: "#fff",
+                textAlign: "center",
               }}
             >
-              <div style={{ fontSize: '60px', marginBottom: '10px' }}>✔</div>
-              <p style={{ margin: '0 0 10px 0', fontSize: '16px' }}>
+              <div style={{ fontSize: "60px", marginBottom: "10px" }}>✔</div>
+              <p style={{ margin: "0 0 10px 0", fontSize: "16px" }}>
                 Thank you for submitting your document for verification.
               </p>
-              <p style={{ margin: 0, fontSize: '16px' }}>
+              <p style={{ margin: 0, fontSize: "16px" }}>
                 Please find below the answer to your request.
               </p>
             </div>
 
-            <div style={{ padding: '30px' }}>
+            <div style={{ padding: "30px" }}>
               <div
                 style={{
-                  backgroundColor: '#f8f9fa',
-                  padding: '25px',
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef',
+                  backgroundColor: "#f8f9fa",
+                  padding: "25px",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
                 }}
               >
-                <div style={{ lineHeight: '2' }}>
+                <div style={{ lineHeight: "2" }}>
                   <div>
                     <strong>Deliverable Id :</strong>
                     <br />
@@ -361,7 +294,7 @@ export default function VerifyContent() {
                   <div>
                     <strong>QR Code Status :</strong>
                     <br />
-                    <span style={{ color: 'green', fontWeight: 'bold' }}>
+                    <span style={{ color: "green", fontWeight: "bold" }}>
                       Validated
                     </span>
                   </div>
@@ -405,27 +338,27 @@ export default function VerifyContent() {
 
               <div
                 style={{
-                  marginTop: '20px',
-                  fontSize: '14px',
-                  color: '#666',
-                  textAlign: 'center',
+                  marginTop: "20px",
+                  fontSize: "14px",
+                  color: "#666",
+                  textAlign: "center",
                 }}
               >
                 For any further information on this document, please contact the
                 issuer of the document.
               </div>
 
-              <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <div style={{ marginTop: "20px", textAlign: "center" }}>
                 <button
                   onClick={() => window.print()}
                   style={{
-                    padding: '12px 30px',
-                    backgroundColor: '#fff',
-                    border: '2px solid #00049E',
-                    color: '#00049E',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
+                    padding: "12px 30px",
+                    backgroundColor: "#fff",
+                    border: "2px solid #00049E",
+                    color: "#00049E",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
                   }}
                 >
                   🖨️ Print
@@ -433,14 +366,14 @@ export default function VerifyContent() {
                 <button
                   onClick={closeModal}
                   style={{
-                    marginLeft: '10px',
-                    padding: '12px 30px',
-                    backgroundColor: '#00049E',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
+                    marginLeft: "10px",
+                    padding: "12px 30px",
+                    backgroundColor: "#00049E",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
                   }}
                 >
                   Close
